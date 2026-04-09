@@ -180,26 +180,6 @@ export default function App() {
   const handleBookingSubmission = async () => {
     const result = await submitBooking(data);
     if (result.success) {
-      // Send notification
-      try {
-        await fetch("/api/notify", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            email: data.email,
-            name: `${data.firstName} ${data.lastName}`,
-            appointmentId: result.appointmentId,
-            bookingDetails: {
-              travellingCountry: getTravellingCountryName(data.travellingCountry),
-              centerName: getCenterName(data.centerId),
-              cityName: getCityName(data.city)
-            }
-          })
-        });
-      } catch (err) {
-        console.error("Failed to send notification:", err);
-      }
-      
       if (result.appointmentId) {
         setAppointmentRef(result.appointmentId);
       }
@@ -212,6 +192,13 @@ export default function App() {
           : `https://wafid.com${result.redirectUrl}`;
         
         setPaymentUrl(fullUrl);
+        
+        // Automatically open the payment link in a new tab
+        try {
+          window.open(fullUrl, '_blank');
+        } catch (err) {
+          console.warn("Popup blocked, user will need to click the button manually.", err);
+        }
       }
       
       setCurrentStep("success");
@@ -933,15 +920,15 @@ export default function App() {
                   </div>
                   <div>
                     <h2 className="text-3xl font-bold text-slate-800">Appointment Booked!</h2>
-                    <p className="text-slate-500 mt-2 max-w-md mx-auto">Your medical examination has been successfully scheduled. A confirmation slip has been sent to your email.</p>
+                    <p className="text-slate-500 mt-2 max-w-md mx-auto">Your medical examination has been successfully scheduled. Please save your reference number below.</p>
                   </div>
 
                   <div className="bg-slate-50 rounded-3xl p-8 max-w-lg mx-auto border border-slate-100 text-left space-y-4">
                     <div className="flex justify-between border-b border-slate-200 pb-4">
                       <span className="text-slate-500">Reference Number</span>
-                      <span className="font-bold text-blue-600">
+                      <span className="font-bold text-blue-600 text-lg">
                         {appointmentRef === "Pending..." ? (
-                          <span className="text-slate-400 italic font-normal text-sm">Check your email for reference</span>
+                          <span className="text-slate-400 italic font-normal text-sm">Processing...</span>
                         ) : (
                           appointmentRef
                         )}

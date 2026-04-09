@@ -1446,67 +1446,6 @@ async function startServer() {
     ];
   }
 
-  // Notification endpoint
-  app.post("/api/notify", async (req, res) => {
-    const { email, name, bookingDetails, appointmentId } = req.body;
-    
-    console.log(`Sending notification to ${email} for appointment ${appointmentId}...`);
-    
-    try {
-      // In a real app, you'd use nodemailer with real credentials
-      // For now, we'll log it and return success
-      // If the user provides SMTP_USER and SMTP_PASS in .env, it will work
-      
-      const nodemailer = await import("nodemailer");
-      
-      const transporter = nodemailer.createTransport({
-        service: "gmail",
-        auth: {
-          user: process.env.SMTP_USER || "your-email@gmail.com",
-          pass: process.env.SMTP_PASS || "your-app-password"
-        }
-      });
-
-      const mailOptions = {
-        from: `"Wafid Booking" <${process.env.SMTP_USER || "noreply@wafid.com"}>`,
-        to: email,
-        subject: "Wafid Medical Appointment Confirmation",
-        html: `
-          <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-            <h2 style="color: #004a99;">Appointment Confirmation</h2>
-            <p>Dear ${name},</p>
-            <p>Your medical appointment has been successfully booked through the Wafid system.</p>
-            <div style="background-color: #f9f9f9; padding: 15px; border-radius: 8px; margin: 20px 0;">
-              <h3 style="margin-top: 0; font-size: 16px;">Booking Details:</h3>
-              <ul style="list-style: none; padding: 0;">
-                <li><strong>Reference:</strong> ${appointmentId || "Check Wafid Portal"}</li>
-                <li><strong>Destination:</strong> ${bookingDetails.travellingCountry}</li>
-                <li><strong>Medical Center:</strong> ${bookingDetails.centerName}</li>
-                <li><strong>City:</strong> ${bookingDetails.cityName}</li>
-              </ul>
-            </div>
-            <p>Please bring your original passport and this confirmation to the medical center.</p>
-            <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
-            <p style="font-size: 12px; color: #888;">This is an automated notification. Please do not reply to this email.</p>
-          </div>
-        `
-      };
-
-      if (process.env.SMTP_USER && process.env.SMTP_PASS) {
-        await transporter.sendMail(mailOptions);
-        console.log("Email sent successfully.");
-      } else {
-        console.warn("SMTP credentials not provided. Email not sent, but logged.");
-        console.log("Email Content:", mailOptions.html);
-      }
-
-      res.json({ success: true, message: "Notification sent" });
-    } catch (error: any) {
-      console.error("Notification error:", error.message);
-      res.status(500).json({ error: "Failed to send notification", message: error.message });
-    }
-  });
-
   app.post("/api/book", async (req, res) => {
     const bookingData = req.body;
     console.log("Received booking request:", JSON.stringify(bookingData, null, 2));
@@ -1680,14 +1619,13 @@ async function startServer() {
 
         if (!appointmentId) {
           // Wafid IDs are often alphanumeric, e.g., WMvBeaEMWGMeE39 (mixed case)
-          // Some might have WFD- prefix
-          // We exclude common words like "Appointment", "Reference", etc.
-          const idMatch = bodyText.match(/(?:Appointment|Reference|Ref|ID|Slip)\s*(?:Number|ID|Ref)?[:\s]*([a-zA-Z0-9-]{10,25})/i) ||
-                          bodyText.match(/(WFD-[A-Z0-9-]{5,20})/i);
+          // Some might have WFD- prefix or be pure numeric (8-12 digits)
+          const idMatch = bodyText.match(/(?:Appointment|Reference|Ref|ID|Slip)\s*(?:Number|ID|Ref)?[:\s]*([a-zA-Z0-9-]{8,25})/i) ||
+                          bodyText.match(/(WFD-[A-Z0-9-]{5,20})/i) ||
+                          bodyText.match(/\b(\d{10,15})\b/); // Pure numeric ID
           
           if (idMatch) {
             const potentialId = idMatch[1] || idMatch[0];
-            // Validate that it's not just a generic word and has some complexity
             if (potentialId && 
                 !/^(Appointment|Reference|Number|Details|Booking|Status|Pending|Success|Error|Failed|Warning|Information|Download|Print|Slip)$/i.test(potentialId) &&
                 potentialId.length >= 8) {
