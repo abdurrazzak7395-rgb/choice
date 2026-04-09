@@ -1,0 +1,5 @@
+{
+  "name": "Remix: Wafid Proxy Booking System",
+  "description": "An automated professional proxy interface for booking medical appointments on Wafid (GAMCA) with streamlined verification.",
+  "requestFramePermissions": []
+}

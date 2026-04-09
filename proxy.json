@@ -1,0 +1,10 @@
+[
+  {
+    "path": "/api/proxy",
+    "target": "http://localhost:3000"
+  },
+  {
+    "path": "/api-proxy",
+    "target": "http://localhost:3000"
+  }
+]
